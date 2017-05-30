@@ -86,7 +86,7 @@ def homework(train_X, train_y, test_X):
     # training
     print("start training")
     n_epochs = 10
-    batch_size = 10
+    batch_size = 64
     n_batches = train_X.shape[0]//batch_size
 
     init = tf.global_variables_initializer()
@@ -100,8 +100,6 @@ def homework(train_X, train_y, test_X):
                 start = i * batch_size
                 end = start + batch_size
                 sess.run(train, feed_dict={x: train_X[start:end], t: train_y[start:end]})
-            pred_y, valid_cost = sess.run([valid, cost], feed_dict={x: train_X, t: train_y})
-            print(f1_score(np.argmax(train_y, 1).astype('int32'), pred_y, average='macro'))
 
         # apply
         print("start applying")
