@@ -82,6 +82,7 @@ def homework(train_X, train_y, test_X):
     n_batches = train_X.shape[0] // batch_size
 
 # Step5. 学習
+    import datetime
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         for epoch in range(n_epochs):
@@ -92,7 +93,8 @@ def homework(train_X, train_y, test_X):
                 sess.run(train, feed_dict={x: train_X[start:end], t: train_y[start:end]})
             pred_y, valid_cost = sess.run([valid, cost], feed_dict={x: valid_X, t: valid_y})
             print('EPOCH:: %i, Validation cost: %.3f, Validation F1: %.3f' % (epoch + 1, valid_cost, f1_score(np.argmax(valid_y, 1).astype('int32'), pred_y, average='macro')))
-        
+            print(datetime.datetime.today())
+
         # apply
         realData = tf.placeholder(tf.float32, name='r')
         #realz1 = tf.nn.sigmoid(tf.matmul(realData, W1) + b1) * 0.8
