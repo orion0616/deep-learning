@@ -9,6 +9,27 @@ def homework(train_X, train_y, test_X):
     rng = np.random.RandomState(1234)
     random_state = 42
 
+    class ZCAWhitening:
+        def __init__(self, epsilon=1e-4):
+            self.epsilon = epsilon
+            self.mean = None
+            self.ZCA_matrix = None
+
+        def fit(self, x):
+            x = x.reshape(x.shape[0], -1)
+            self.mean = np.mean(x, axis=0)
+            x -= self.mean
+            cov_matrix = np.dot(x.T, x) / x.shape[0]
+            A, d, _ = np.linalg.svd(cov_matrix)
+            self.ZCA_matrix = np.dot(np.dot(A, np.diag(1. / np.sqrt(d + self.epsilon))), A.T)
+
+        def transform(self, x):
+            shape = x.shape
+            x = x.reshape(x.shape[0], -1)
+            x -= self.mean
+            x = np.dot(x, self.ZCA_matrix.T)
+            return x.reshape(shape)
+
     class BatchNorm:
         def __init__(self, shape, epsilon=np.float32(1e-5)):
             self.gamma = tf.Variable(np.ones(shape, dtype='float32'), name='gamma')
@@ -112,6 +133,11 @@ def homework(train_X, train_y, test_X):
 
     valid = tf.argmax(y, 1)
 
+    # preprocessing
+    zca = ZCAWhitening()
+    zca.fit(gcn(train_X))
+    zca_train_X = zca.transform(gcn(train_X))
+    zca_train_y = train_y[:]
 
     # trainig
     n_epochs = 10
