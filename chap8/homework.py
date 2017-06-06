@@ -1,13 +1,17 @@
 def homework(train_X, train_y, test_X):
     import numpy as np
     import tensorflow as tf
-    import matplotlib.pyplot as plt
     from sklearn.utils import shuffle
     from sklearn.metrics import f1_score
     from sklearn.model_selection import train_test_split
     from keras.datasets import cifar10
     rng = np.random.RandomState(1234)
     random_state = 42
+
+    def gcn(x):
+        mean = np.mean(x, axis=(1, 2, 3), keepdims=True)
+        std = np.std(x, axis=(1, 2, 3), keepdims=True)
+        return (x - mean)/std
 
     class ZCAWhitening:
         def __init__(self, epsilon=1e-4):
@@ -120,6 +124,14 @@ def homework(train_X, train_y, test_X):
 
     x = tf.placeholder(tf.float32, [None, 32, 32, 3])
     t = tf.placeholder(tf.float32, [None, 10])
+    # preprocessing
+    print("start preprocessing")
+    zca = ZCAWhitening()
+    zca.fit(gcn(train_X))
+    zca_train_X = zca.transform(gcn(train_X))
+    zca_train_y = train_y[:]
+    zca.fit(gcn(test_X))
+    zca_test_X = zca.transform(gcn(test_X))
 
     def f_props(layers, x):
         for layer in layers:
@@ -133,13 +145,8 @@ def homework(train_X, train_y, test_X):
 
     valid = tf.argmax(y, 1)
 
-    # preprocessing
-    zca = ZCAWhitening()
-    zca.fit(gcn(train_X))
-    zca_train_X = zca.transform(gcn(train_X))
-    zca_train_y = train_y[:]
-
     # trainig
+    print("start training")
     n_epochs = 10
     batch_size = 100
     n_batches = train_X.shape[0]//batch_size
@@ -156,13 +163,13 @@ def homework(train_X, train_y, test_X):
                 start = i * batch_size
                 end = start + batch_size
                 sess.run(train, feed_dict={x: zca_train_X[start:end], t: zca_train_y[start:end]})
-            pred_y, valid_cost = sess.run([valid, cost], feed_dict={x: zca_valid_X, t: zca_valid_y})
-            print('EPOCH:: %i, Validation cost: %.3f, Validation F1: %.3f' % (epoch + 1, valid_cost, f1_score(np.argmax(valid_y, 1).astype('int32'), pred_y, average='macro')))
+            
+            pred_y, valid_cost = sess.run([valid, cost], feed_dict={x: zca_train_X, t: zca_train_y})
+            print('EPOCH:: %i, Validation cost: %.3f, Validation F1: %.3f' % (epoch + 1, valid_cost, f1_score(np.argmax(train_y, 1).astype('int32'), pred_y, average='macro')))
 
-        # TODO: rewrite z!
         z = tf.placeholder(tf.float32, [None, 32, 32, 3])
         result = f_props(layers, z)
         ans = tf.argmax(result, 1)
-        pred_y = sess.run(ans, feed_dict={z: test_X})
+        pred_y = sess.run(ans, feed_dict={z: zca_test_X})
 
     return pred_y

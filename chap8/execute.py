@@ -34,6 +34,7 @@ del [
 sys.modules['keras'] = None
 
 def load_cifar():
+    print("start loading cifar")
     (cifar_X_1, cifar_y_1), (cifar_X_2, cifar_y_2) = cifar10.load_data()
 
     cifar_X = np.r_[cifar_X_1, cifar_X_2]
@@ -45,6 +46,7 @@ def load_cifar():
     train_X, test_X, train_y, test_y = train_test_split(cifar_X, cifar_y,
                                                         test_size=10000,
                                                         random_state=42)
+    print("finish loading cifar")
 
     return (train_X, test_X, train_y, test_y)
 
@@ -66,5 +68,4 @@ def score_homework():
     print(f1_score(np.argmax(test_y, 1), pred_y, average='macro'))
 
 if __name__ == '__main__':
-    validate_homework()
-
+    score_homework()
