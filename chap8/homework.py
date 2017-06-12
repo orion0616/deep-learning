@@ -173,9 +173,9 @@ def homework(train_X, train_y, test_X):
                 cropped_train_X = [padded[i, c[0]:(c[0]+32), c[1]:(c[1]+32), :] for i, c in enumerate(crops)]
                 cropped_train_X = np.array(cropped_train_X)
                 batched_train_X = np.concatenate((batched_train_X, cropped_train_X), axis=0)
-                batched_train_y = np.concatenate((train_y[start:end], train_y[start:end]), axis=0)
+                batched_train_y = np.concatenate((zca_train_y[start:end], zca_train_y[start:end]), axis=0)
                 batched_train_y = np.concatenate((batched_train_y, batched_train_y), axis=0)
-                sess.run(train, feed_dict={x: batched_train_X[start:end], t: batched_train_y[start:end]})
+                sess.run(train, feed_dict={x: batched_train_X, t: batched_train_y})
             
             pred_y, valid_cost = sess.run([valid, cost], feed_dict={x: zca_train_X[0:100], t: zca_train_y[0:100]})
             print('EPOCH:: %i, Validation cost: %.3f, Validation F1: %.3f' % (epoch + 1, valid_cost, f1_score(np.argmax(train_y[:100], 1).astype('int32'), pred_y, average='macro')))
