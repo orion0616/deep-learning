@@ -127,6 +127,19 @@ def homework(train_X, train_y, test_X):
     t = tf.placeholder(tf.float32, [None, 10])
     # preprocessing
     print("start preprocessing")
+    print("start Data Augmentation")
+    flip_train_X = train_X[:,:, ::-1, :]
+    train_X = np.concatenate((train_X, flip_train_X), axis=0)
+    train_y = np.concatenate((train_y, train_y), axis=0)
+
+    padded = np.pad(train_X, ((0, 0), (4, 4), (4, 4), (0, 0)), mode='constant')
+    crops = rng.randint(8, size=(len(train_X), 2))
+    cropped_train_X = [padded[i, c[0]:(c[0]+32), c[1]:(c[1]+32), :] for i, c in enumerate(crops)]
+    cropped_train_X = np.array(cropped_train_X)
+    train_X = np.concatenate((train_X, flip_train_X), axis=0)
+    train_y = np.concatenate((train_y, train_y), axis=0)
+
+    print("start ZCA whitening and GCN")
     zca = ZCAWhitening()
     zca.fit(gcn(train_X))
     zca_train_X = zca.transform(gcn(train_X))
