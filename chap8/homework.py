@@ -51,9 +51,18 @@ def homework(train_X, train_y, test_X):
                 std = tf.sqrt(var + self.epsilon)
             normalized_x = (x - mean) / std
             return self.gamma * normalized_x + self.beta
+        def prop(self, x):
+            if len(x.get_shape()) == 2:
+                mean, var = tf.nn.moments(x, axes=0, keepdims=True)
+                std = tf.sqrt(var + self.epsilon)
+            elif len(x.get_shape()) == 4:
+                mean, var = tf.nn.moments(x, axes=(0,1,2), keep_dims=True)
+                std = tf.sqrt(var + self.epsilon)
+            normalized_x = (x - mean) / std
+            return self.gamma * normalized_x + self.beta
 
     class Conv:
-        def __init__(self, filter_shape, function=lambda x: x, strides=[1,1,1,1], padding='VALID'):
+        def __init__(self, filter_shape, function=lambda x: x, strides=[1,1,1,1], padding='VALID', dropout=0.8):
             # Xavier
             fan_in = np.prod(filter_shape[:3])
             fan_out = np.prod(filter_shape[:2]) * filter_shape[3]
@@ -66,26 +75,38 @@ def homework(train_X, train_y, test_X):
             self.function = function
             self.strides = strides
             self.padding = padding
+            self.dropout = dropout
 
         def f_prop(self, x):
             u = tf.nn.conv2d(x, self.W, strides=self.strides, padding=self.padding) + self.b
-            return self.function(u)
+            return tf.nn.dropout(self.function(u), self.dropout)
+
+        def prop(self, x):
+            u = tf.nn.conv2d(x, self.W, strides=self.strides, padding=self.padding) + self.b
+            return self.dropout * self.function(u)
+
 
     class Pooling:
-        def __init__(self, ksize=[1,2,2,1], strides=[1,2,2,1], padding='VALID'):
+        def __init__(self, ksize=[1,2,2,1], strides=[1,2,2,1], padding='VALID', dropout=0.8):
             self.ksize = ksize
             self.strides = strides
             self.padding = padding
+            self.dropout = dropout
         
         def f_prop(self, x):
-            return tf.nn.max_pool(x, ksize=self.ksize, strides=self.strides, padding=self.padding)
+            return tf.nn.dropout(tf.nn.max_pool(x, ksize=self.ksize, strides=self.strides, padding=self.padding), self.dropout)
+
+        def prop(self, x):
+            return self.dropout * tf.nn.max_pool(x, ksize=self.ksize, strides=self.strides, padding=self.padding)
 
     class Flatten:
         def f_prop(self, x):
             return tf.reshape(x, (-1, np.prod(x.get_shape().as_list()[1:])))
+        def prop(self, x):
+            return tf.reshape(x, (-1, np.prod(x.get_shape().as_list()[1:])))
 
     class Dense:
-        def __init__(self, in_dim, out_dim, function=lambda x: x):
+        def __init__(self, in_dim, out_dim, function=lambda x: x, dropout=0.8):
             # Xavier
             self.W = tf.Variable(rng.uniform(
                             low=-np.sqrt(6/(in_dim + out_dim)),
@@ -94,15 +115,22 @@ def homework(train_X, train_y, test_X):
                         ).astype('float32'), name='W')
             self.b = tf.Variable(np.zeros([out_dim]).astype('float32'))
             self.function = function
+            self.dropout = dropout
 
         def f_prop(self, x):
-            return self.function(tf.matmul(x, self.W) + self.b)
+            return tf.nn.dropout(self.function(tf.matmul(x, self.W) + self.b), self.dropout)
+
+        def prop(self, x):
+            return self.dropout * self.function(tf.matmul(x, self.W) + self.b)
 
     class Activation:
         def __init__(self, function=lambda x: x):
             self.function = function
         
         def f_prop(self, x):
+            return self.function(x)
+        
+        def prop(self, x):
             return self.function(x)
 
 
@@ -140,12 +168,17 @@ def homework(train_X, train_y, test_X):
             x = layer.f_prop(x)
         return x
 
+    def props(layers, x):
+        for layer in layers:
+            x = layer.prop(x)
+
     y = f_props(layers, x)
+    yy = props(layers, x)
 
     cost = -tf.reduce_mean(tf.reduce_sum(t * tf.log(tf.clip_by_value(y, 1e-10, 1.0)), axis=1))
     train = tf.train.AdamOptimizer(1e-4).minimize(cost)
 
-    valid = tf.argmax(y, 1)
+    valid = tf.argmax(yy, 1)
 
     # trainig
     print("start training")
