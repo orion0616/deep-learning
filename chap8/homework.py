@@ -174,7 +174,7 @@ def homework(train_X, train_y, test_X):
                 cropped_train_X = np.array(cropped_train_X)
                 batched_train_X = np.concatenate((batched_train_X, cropped_train_X), axis=0)
                 batched_train_y = np.concatenate((train_y[start:end], train_y[start:end]), axis=0)
-                batched_train_y = np.concatenate((batched_train_y, bathed_train_y), axis=0)
+                batched_train_y = np.concatenate((batched_train_y, batched_train_y), axis=0)
                 sess.run(train, feed_dict={x: batched_train_X[start:end], t: batched_train_y[start:end]})
             
             pred_y, valid_cost = sess.run([valid, cost], feed_dict={x: zca_train_X[0:100], t: zca_train_y[0:100]})
