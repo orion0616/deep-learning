@@ -1,6 +1,7 @@
 def homework(train_X, train_y, test_X):
     import numpy as np
     import tensorflow as tf
+    import sys
     from sklearn.utils import shuffle
     from sklearn.metrics import f1_score
     from sklearn.model_selection import train_test_split
@@ -141,14 +142,14 @@ def homework(train_X, train_y, test_X):
     y = f_props(layers, x)
 
     cost = -tf.reduce_mean(tf.reduce_sum(t * tf.log(tf.clip_by_value(y, 1e-10, 1.0)), axis=1))
-    train = tf.train.GradientDescentOptimizer(0.01).minimize(cost)
+    train = tf.train.AdamOptimizer(1e-4).minimize(cost)
 
     valid = tf.argmax(y, 1)
 
     # trainig
     print("start training")
     n_epochs = 10
-    batch_size = 100
+    batch_size = 50
     n_batches = train_X.shape[0]//batch_size
 
     sess = tf.Session()
@@ -164,8 +165,8 @@ def homework(train_X, train_y, test_X):
                 end = start + batch_size
                 sess.run(train, feed_dict={x: zca_train_X[start:end], t: zca_train_y[start:end]})
             
-            pred_y, valid_cost = sess.run([valid, cost], feed_dict={x: zca_train_X, t: zca_train_y})
-            print('EPOCH:: %i, Validation cost: %.3f, Validation F1: %.3f' % (epoch + 1, valid_cost, f1_score(np.argmax(train_y, 1).astype('int32'), pred_y, average='macro')))
+            pred_y, valid_cost = sess.run([valid, cost], feed_dict={x: zca_train_X[0:100], t: zca_train_y[0:100]})
+            print('EPOCH:: %i, Validation cost: %.3f, Validation F1: %.3f' % (epoch + 1, valid_cost, f1_score(np.argmax(train_y[:100], 1).astype('int32'), pred_y, average='macro')))
 
         z = tf.placeholder(tf.float32, [None, 32, 32, 3])
         result = f_props(layers, z)
