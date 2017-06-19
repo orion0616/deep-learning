@@ -1,5 +1,7 @@
 def homework(train_X, train_y, test_X):
-    global num_words # =10000
+    # TODO erase substitutioning
+    # global num_words
+    num_words = 10000
     # WRITE ME!
     import numpy as np
     import tensorflow as tf
@@ -108,7 +110,7 @@ def homework(train_X, train_y, test_X):
     n_epochs = 5
     batch_size = 100
     n_batches_train = len(train_X) // batch_size
-    n_batches_valid = len(valid_X) // batch_size
+    n_batches_valid = len(train_X[:100]) // batch_size
 
     with tf.Session() as sess:
         init = tf.global_variables_initializer()
@@ -133,11 +135,21 @@ def homework(train_X, train_y, test_X):
                 start = i * batch_size
                 end = start + batch_size
                 
-                valid_X_mb = np.array(pad_sequences(valid_X[start:end], padding='post', value=-1)) # Padding
-                valid_y_mb = np.array(valid_y[start:end])[:, np.newaxis]
+                valid_X_mb = np.array(pad_sequences(train_X[start:end], padding='post', value=-1)) # Padding
+                valid_y_mb = np.array(train_y[start:end])[:, np.newaxis]
                 
-                pred, valid_cost = sess.run([test, cost], feed_dict={x: valid_X_mb, t: valid_y_mb})
+                pred, valid_cost = sess.run([test, cost], feed_dict={x: train_X_mb[:100], t: train_y_mb[:100]})
                 pred_y += pred.flatten().tolist()
                 valid_costs.append(valid_cost)
-            print('EPOCH: %i, Training cost: %.3f, Validation cost: %.3f, Validation F1: %.3f' % (epoch+1, np.mean(train_costs), np.mean(valid_costs), f1_score(valid_y, pred_y, average='macro')))
+            print('EPOCH: %i, Training cost: %.3f, Validation cost: %.3f, Validation F1: %.3f' % (epoch+1, np.mean(train_costs), np.mean(valid_costs), f1_score(train_y[:100], pred_y, average='macro')))
+
+        # Apply
+        pred_y = []
+        n_batches_apply = len(test_X) // batch_size
+        for i in range(n_batches_apply):
+            start = i * batch_size
+            end = start + batch_size
+            test_X_mb = np.array(pad_sequences(test_X[start:end], padding='post', value=-1)) # Padding
+            pred = sess.run(test, feed_dict={x: test_X_mb})
+            pred_y += pred.flatten().tolist()
     return pred_y
